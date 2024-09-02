@@ -1,0 +1,274 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+
+output:
+/kaggle/input/playground-series-s4e9/sample_submission.csv
+/kaggle/input/playground-series-s4e9/train.csv
+/kaggle/input/playground-series-s4e9/test.csv
+
+#get started with the task of Used Car Prices analysis:
+#data visualization and creation of interactive and attractive graphs will be built on the Plotly library which offers a simplified interface for creating a wide variety of charts using a concise and intuitive syntax.
+import plotly.express as px
+import plotly.graph_objects as go
+
+data = pd.read_csv("/kaggle/input/playground-series-s4e9/train.csv")
+print(data.head())
+
+output:
+   id          brand              model  model_year  milage      fuel_type  \
+0   0           MINI      Cooper S Base        2007  213000       Gasoline   
+1   1        Lincoln              LS V8        2002  143250       Gasoline   
+2   2      Chevrolet  Silverado 2500 LT        2002  136731  E85 Flex Fuel   
+3   3        Genesis   G90 5.0 Ultimate        2017   19500       Gasoline   
+4   4  Mercedes-Benz        Metris Base        2021    7388       Gasoline   
+
+                                              engine  \
+0       172.0HP 1.6L 4 Cylinder Engine Gasoline Fuel   
+1       252.0HP 3.9L 8 Cylinder Engine Gasoline Fuel   
+2  320.0HP 5.3L 8 Cylinder Engine Flex Fuel Capab...   
+3       420.0HP 5.0L 8 Cylinder Engine Gasoline Fuel   
+4       208.0HP 2.0L 4 Cylinder Engine Gasoline Fuel   
+
+                     transmission ext_col int_col  \
+0                             A/T  Yellow    Gray   
+1                             A/T  Silver   Beige   
+2                             A/T    Blue    Gray   
+3  Transmission w/Dual Shift Mode   Black   Black   
+4                     7-Speed A/T   Black   Beige   
+                                 accident clean_title  price  
+0                           None reported         Yes   4200  
+1  At least 1 accident or damage reported         Yes   4999  
+2                           None reported         Yes  13900  
+3                           None reported         Yes  45000  
+4                           None reported         Yes  97500  
+
+#before anything else, we will look at whether this dataset contains any null values or not:
+print(data.isnull().sum())
+
+output:
+id                  0
+brand               0
+model               0
+model_year          0
+milage              0
+fuel_type        5083
+engine              0
+transmission        0
+ext_col             0
+int_col             0
+accident         2452
+clean_title     21419
+price               0
+dtype: int64
+
+#The dataset doesn’t have any null values. Now, let’s have a look at the descriptive statistics of the data:
+print(data.describe())
+
+output:
+                  id     model_year         milage         price
+count  188533.000000  188533.000000  188533.000000  1.885330e+05
+mean    94266.000000    2015.829998   65705.295174  4.387802e+04
+std     54424.933488       5.660967   49798.158076  7.881952e+04
+min         0.000000    1974.000000     100.000000  2.000000e+03
+25%     47133.000000    2013.000000   24115.000000  1.700000e+04
+50%     94266.000000    2017.000000   57785.000000  3.082500e+04
+75%    141399.000000    2020.000000   95400.000000  4.990000e+04
+max    188532.000000    2024.000000  405000.000000  2.954083e+06
+
+#Observation on the price column:
+#Number of values ​​(count):
+#There are a total of 188,533 observations in the price column, which indicates that the data is complete for this column with no missing values.
+#Average (mean):
+#The average price of vehicles is 43,878.02 dollars. This value gives an idea of ​​the central value of prices in the dataset.
+#Standard deviation (std):
+#The standard deviation of prices is $78,819.52, which indicates a large dispersion of the data around the mean. This wide variability suggests that vehicle prices vary considerably.
+#Minimum and maximum values ​​(min and max):
+#The minimum price is  2,000, while the maximum price is 2,954,083. This wide price range indicates the presence of extreme outliers, which can significantly influence statistics like mean and standard deviation.
+#Quartiles (25%, 50%, 75%):
+#The first quartile (25%) is at  17,000, which means that 25 17.000, The second quartile (50% or median) is at 30,825, indicating that half of the vehicles are price dat or below 30,825.
+#The third quartile (75%) is at  
+#Overall interpretation:
+#The price distribution appears to be asymmetric with a tail spreading towards high values, which is confirmed by the large gap between the mean and the median. This asymmetry and the presence of outliers suggest that vehicle prices are highly variable, with a concentration of vehicles at relatively low prices and a minority of vehicles at very high prices.
+#This finding provides an overview of the characteristics of the price 
+#This finding provides an overview of the characteristics of the price distribution in your dataset, highlighting variability and the possible presence of outliers.
+#Now I will create a new dataframe by storing all the data about the top 10 highest Price
+highest_price = data.sort_values(by=["price"], 
+                                 ascending=False)
+highest_price = highest_price.head(10)
+print(highest_price['model'])
+
+output:
+74189                          Metris Base
+138122    Escalade Premium Luxury Platinum
+85611     Silverado 1500 Custom Trail Boss
+18946                              S4 Base
+43218                   Model 3 Long Range
+157056                          XT5 Luxury
+55493                          LS 430 Base
+72448              SL-Class SL550 Roadster
+59650                       Highlander XLE
+183468                   Continental GT V8
+Name: model, dtype: object
+
+#Continental GT V8, XT5 Luxury, Escalade Premium Luxury Platinum, Silverado 1500 Custom Trail Boss, Metris Base are the top five most expensive models
+#Now let’s have a look at the number of milage of the most expensive models
+
+print(highest_price.head())
+
+output:
+            id          brand                             model  model_year  \
+74189    74189  Mercedes-Benz                       Metris Base        2020   
+138122  138122       Cadillac  Escalade Premium Luxury Platinum        2021   
+85611    85611      Chevrolet  Silverado 1500 Custom Trail Boss        2022   
+18946    18946           Audi                           S4 Base        2004   
+43218    43218          Tesla                Model 3 Long Range        2021   
+
+        milage fuel_type                                        engine  \
+74189     9686  Gasoline                    2.0L I4 16V GDI DOHC Turbo   
+138122   61830  Gasoline                           6.2L V8 16V GDI OHV   
+85611     5072  Gasoline                           5.3L V8 16V GDI OHV   
+18946    73500  Gasoline  340.0HP 4.2L 8 Cylinder Engine Gasoline Fuel   
+43218    22457       NaN                                      Electric   
+              transmission             ext_col      int_col       accident  \
+74189    8-Speed Automatic               Black        Black  None reported   
+138122  10-Speed Automatic  Sandstone Metallic  Dark Auburn  None reported   
+85611            Automatic               White    Jet Black  None reported   
+18946          6-Speed M/T                Blue        Beige  None reported   
+43218    1-Speed Automatic               White        Black  None reported   
+
+       clean_title    price  
+74189          NaN  2954083  
+138122         Yes  2954083  
+85611          NaN  2954083  
+18946          Yes  2954083  
+43218          Yes  2954083  
+
+used_cars = highest_price["model"].value_counts()
+label = used_cars.index
+counts = highest_price["milage"]
+
+# Créer le bar plot
+figure = px.bar(highest_price, x=label, y=counts, title="Number of milage of most expensive models")
+figure.show()
+
+#According to the above bar graph, the most expensive models have the least mileage, Now, let's have a look at the model_year of reviews of the most expensive vehicle models
+used_cars = highest_price["model"].value_counts()
+label = used_cars.index
+counts = highest_price["model_year"]
+
+# Créer le bar plot
+figure = px.bar(highest_price, x=label, y=counts, title="model year of most expensive models")
+figure.show()
+
+#we cannot see decisive things
+#WE WILL SEE A CORRELATION BETWEEN fuel_type and price
+
+if len(highest_price["fuel_type"]) > len(highest_price["price"]):
+    highest_price["fuel_type"] = highest_price["fuel_type"][:len(highest_price["price"])]
+elif len(highest_price["price"]) > len(highest_price["fuel_type"]):
+    highest_price["price"] = highest_price["price"][:len(highest_price["fuel_type"])]
+
+#we look for the relationship between price and fuel_type. There are several approaches you can use depending on what you mean by "relationship". for this we will use two types of analyses: Descriptive analysis: You can start with descriptive analysis to understand how the two types of data are distributed and if they are related in any way.
+#Visualization: Use graphs to visualize the relationship between the two types of data.
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Create DataFrame
+df = pd.DataFrame(highest_price)
+
+# Analyse descriptive
+print(df.groupby('fuel_type')['price'].describe())
+
+# Visualisation
+sns.boxplot(x='fuel_type', y="price", data=df)
+plt.show()
+
+output:
+           count       mean  std        min        25%        50%        75%  \
+fuel_type                                                                      
+Gasoline     9.0  2954083.0  0.0  2954083.0  2954083.0  2954083.0  2954083.0   
+
+                 max  
+fuel_type             
+Gasoline   2954083.0  
+
+#For modeling, one can use machine learning techniques like logistic regression, decision trees, etc.
+#We will use scikit-learn
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+
+# Convert string data to categories
+df['fuel_type'] = df['fuel_type'].astype('category').cat.codes
+
+# Separate data into features and targets
+X = df[['fuel_type']]
+y = df['price']
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train a linear regression model
+model = LinearRegression()
+model.fit(X_train, y_train)
+# Make predictions
+y_pred = model.predict(X_test)
+
+# Évaluer le modèle
+mse = mean_squared_error(y_test, y_pred)
+print(f'Mean Squared Error: {mse}')
+
+output:
+Mean Squared Error: 0.0
+
+print("Predictions:", y_pred)
+print("Real Values:", y_test)
+
+output:
+Predictions: [2954083. 2954083.]
+Real Values: 59650     2954083
+138122    2954083
+Name: price, dtype: int64
+
+#The predictions (y_pred) and actual values ​​(y_test) that we printed indicate that the predictions are identical for the two test samples, and these predictions correspond to the actual values. This explains why the Mean Squared Error (MSE) is 0.0.
+#However, there are a few things to check to understand why this is happening:
+#Size of training and testing sets: Ensuring that the data is properly split and that the training and testing sets are distinct. If the test data is very small or is the same as the training data, this can explain the perfect predictions.
+#Model complexity: A simple linear regression model can sometimes find an exact solution if the data is very simple or linearly separable.
+#Check the data: Make sure the data does not contain duplicates or errors that could skew the results.
+#Cross-validation: By applying cross-validation to better evaluate the performance of the model on different sub-parts of the data.
+
+from sklearn.model_selection import cross_val_score
+
+# Check the size of training and test sets
+print("Taille de l'ensemble d'entraînement:", len(X_train))
+print("Taille de l'ensemble de test:", len(X_test))
+
+#Apply cross-validation
+scores = cross_val_score(model, X, y, cv=5, scoring='neg_mean_squared_error')
+mse_scores = -scores
+print("MSE cross validation score:", mse_scores)
+print("MSE cross validation mean:", mse_scores.mean())
+
+output:
+Taille de l'ensemble d'entraînement: 8
+Taille de l'ensemble de test: 2
+MSE cross validation score: [0. 0. 0. 0. 0.]
+MSE cross validation mean: 0.0
+
+#The results obtained indicate that the linear regression model perfectly predicts the values ​​of the target variable on all cross-validation sets, as well as on the test set. The MSE scores from the cross-validation are all zero, meaning the model predicts perfectly on every fold from the cross-validation. This may indicate that the data is very simple or that the model is overfitting the training data. A linear regression model is relatively simple and can sometimes find an exact solution if the data is linearly separable. In summary, with such a small data set, it is possible for the model to find an exact solution. It is important to collect more data and try other approaches to evaluate the robustness and generalizability of the model.
